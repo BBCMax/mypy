@@ -604,6 +604,8 @@ class SemanticAnalyzerPass2(NodeVisitor[None],
             # redefinitions already.
             return
 
+        inner = None  # type: Optional[FuncDef]
+
         # We know this is an overload def -- let's handle classmethod and staticmethod
         class_status = []
         static_status = []
@@ -787,7 +789,11 @@ class SemanticAnalyzerPass2(NodeVisitor[None],
 
     def apply_class_plugin_hooks(self, defn: ClassDef) -> None:
         """Apply a plugin hook that may infer a more precise definition for a class."""
-        def get_fullname(expr: Expression) -> Optional[str]:
+
+        get_fullname = None  # type: Optional[Callable[[Expression], Optional[str]]]
+
+        def _get_fullname(expr: Expression) -> Optional[str]:
+            assert get_fullname
             if isinstance(expr, CallExpr):
                 return get_fullname(expr.callee)
             elif isinstance(expr, IndexExpr):
@@ -802,6 +808,8 @@ class SemanticAnalyzerPass2(NodeVisitor[None],
                 if sym:
                     return sym.fullname
             return None
+
+        get_fullname = _get_fullname
 
         for decorator in defn.decorators:
             decorator_name = get_fullname(decorator)
@@ -1639,6 +1647,7 @@ class SemanticAnalyzerPass2(NodeVisitor[None],
         self.cur_mod_node.alias_deps[target].update(aliases_used)
 
     def visit_assignment_stmt(self, s: AssignmentStmt) -> None:
+        lval = None
         for lval in s.lvalues:
             self.analyze_lvalue(lval, explicit_type=s.type is not None)
         self.check_classvar(s)
@@ -3022,6 +3031,7 @@ class SemanticAnalyzerPass2(NodeVisitor[None],
                     self.name_not_defined(name, ctx)
                 return None
         # 2. Class attributes (if within class definition)
+        implicit_node = None
         if self.type and not self.is_func_scope() and name in self.type.names:
             node = self.type.names[name]
             if not node.implicit:
@@ -3315,6 +3325,7 @@ class SemanticAnalyzerPass2(NodeVisitor[None],
 
     def name_already_defined(self, name: str, ctx: Context,
                     original_ctx: Optional[Union[SymbolTableNode, SymbolNode]] = None) -> None:
+        node = None
         if isinstance(original_ctx, SymbolTableNode):
             node = original_ctx.node
         elif isinstance(original_ctx, SymbolNode):
