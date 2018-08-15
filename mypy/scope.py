@@ -7,12 +7,14 @@ from contextlib import contextmanager
 from typing import List, Optional, Iterator, Tuple
 
 from mypy.nodes import TypeInfo, FuncBase
+from mypy.bogus_type import Bogus
+
+
+SavedScope = Tuple[str, Optional[TypeInfo], Optional[FuncBase]]
 
 
 class Scope:
     """Track which target we are processing at any given time."""
-
-    SavedScope = Tuple[str, Optional[TypeInfo], Optional[FuncBase]]
 
     def __init__(self) -> None:
         self.module = None  # type: Optional[str]
@@ -29,7 +31,8 @@ class Scope:
         """Return the current target (non-class; for a class return enclosing module)."""
         assert self.module
         if self.function:
-            return self.function.fullname()
+            fullname = self.function.fullname()
+            return fullname or ''
         return self.module
 
     def current_full_target(self) -> str:
