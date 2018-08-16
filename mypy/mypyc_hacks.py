@@ -1,5 +1,14 @@
 """Stuff that we had to move out of its right place because of mypyc limitations."""
 
+# To help fastparse workaround the lack of __get__ on functions
+from typing import Callable, Any
+
+
+def selfify(f: Callable[..., Any]) -> Callable[..., Any]:
+    def g(*args: Any, **kwargs: Any) -> Any:
+        return f(*args, **kwargs)
+    return g
+
 
 # Moved from types.py, because it inherits from Enum, which uses a
 # metaclass in a nontrivial way.

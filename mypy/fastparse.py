@@ -128,8 +128,12 @@ def parse_type_comment(type_comment: str, line: int, errors: Optional[Errors]) -
         return TypeConverter(errors, line=line).visit(typ.body)
 
 
+from mypy.mypyc_hacks import selfify
+
+
 def with_line(f: Callable[['ASTConverter', T], U]) -> Callable[['ASTConverter', T], U]:
-    @wraps(f)
+    # @wraps(f)
+    @selfify
     def wrapper(self: 'ASTConverter', ast: T) -> U:
         node = f(self, ast)
         node.set_line(ast.lineno, ast.col_offset)
